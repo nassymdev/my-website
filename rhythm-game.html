@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhythm</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        background: radial-gradient(ellipse at center, #001a33 0%, #000011 70%);
+        color: white;
+        font-family: 'Orbitron', monospace;
+        text-align: center;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        position: relative;
+    }
+
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: 
+            linear-gradient(rgba(100,150,255,0.15) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(100,150,255,0.15) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: gridMove 10s linear infinite;
+        pointer-events: none;
+    }
+
+    @keyframes gridMove {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(50px, 50px); }
+    }
+
+    @keyframes screenShake {
+        0%, 100% { transform: translate(0, 0); }
+        10% { transform: translate(-2px, -2px); }
+        20% { transform: translate(2px, -1px); }
+        30% { transform: translate(-1px, 2px); }
+        40% { transform: translate(1px, 1px); }
+        50% { transform: translate(-1px, -1px); }
+        60% { transform: translate(2px, 1px); }
+        70% { transform: translate(-2px, -1px); }
+        80% { transform: translate(1px, -2px); }
+        90% { transform: translate(-1px, 1px); }
+    }
+
+    .shake {
+        animation: screenShake 0.4s ease-in-out;
+    }
+
+    h1 {
+        font-size: 3em;
+        font-weight: 900;
+        margin: 20px 0;
+        background: linear-gradient(45deg, #4488ff, #88ccff, #4488ff);
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: blueShift 3s ease-in-out infinite;
+        text-shadow: 0 0 30px rgba(68,136,255,0.8);
+    }
+
+    @keyframes blueShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    #gameArea {
+        position: relative;
+        margin: 0 auto;
+        width: 500px;
+        height: 700px;
+        border: 3px solid;
+        border-image: linear-gradient(45deg, #4488ff, #88ccff, #2266dd) 1;
+        background: linear-gradient(180deg, rgba(0,0,20,0.9) 0%, rgba(0,26,51,0.8) 100%);
+        overflow: hidden;
+        box-shadow: 
+            0 0 40px rgba(68,136,255,0.6),
+            inset 0 0 40px rgba(136,204,255,0.2);
+        border-radius: 15px;
+    }
+
+    .target {
+        position: absolute;
+        bottom: 50px;
+        width: 125px;
+        height: 25px;
+        border: 3px solid;
+        border-radius: 8px;
+        background: rgba(68,136,255,0.1);
+        transition: all 0.1s ease;
+        border-color: #4488ff;
+        box-shadow: 0 0 15px #4488ff, 0 0 30px rgba(68,136,255,0.5);
+    }
+
+    .target:nth-child(2n) {
+        border-color: #88ccff;
+        box-shadow: 0 0 15px #88ccff, 0 0 30px rgba(136,204,255,0.5);
+    }
+
+    .target.hitFlash {
+        animation: targetFlash 0.3s ease, targetShake 0.25s ease;
+        transform: scale(1.1);
+    }
+    @keyframes targetFlash {
+        0% { 
+            background: rgba(68,136,255,0.8); 
+            box-shadow: 0 0 40px #4488ff, 0 0 80px #4488ff;
+            transform: scale(1.2);
+        }
+        100% { 
+            background: rgba(68,136,255,0.1); 
+            transform: scale(1);
+        }
+    }
+    @keyframes targetShake {
+        0%, 100% { transform: translateX(0) scale(1.1); }
+        25% { transform: translateX(-5px) scale(1.1); }
+        50% { transform: translateX(5px) scale(1.1); }
+        75% { transform: translateX(-3px) scale(1.1); }
+    }
+
+    .target.miss {
+        animation: missFlash 0.4s ease;
+    }
+    @keyframes missFlash {
+        0% { 
+            background: rgba(100,100,255,0.8); 
+            box-shadow: 0 0 40px #6666ff;
+            border-color: #6666ff;
+        }
+        100% { 
+            background: rgba(68,136,255,0.1); 
+        }
+    }
+
+    .laneLine {
+        position: absolute;
+        top: 0;
+        width: 3px;
+        height: 100%;
+        background: linear-gradient(180deg, 
+            transparent 0%, 
+            rgba(68,136,255,0.6) 20%, 
+            rgba(136,204,255,0.6) 80%, 
+            transparent 100%);
+        box-shadow: 0 0 10px rgba(68,136,255,0.8);
+    }
+
+    .label {
+        position: absolute;
+        bottom: 15px;
+        width: 125px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: 700;
+        color: #88ccff;
+        text-shadow: 0 0 15px currentColor, 0 0 30px currentColor;
+        z-index: 5;
+    }
+
+    .note {
+        position: absolute;
+        width: 125px;
+        height: 25px;
+        border-radius: 8px;
+        border: 2px solid;
+        transition: all 0.1s ease;
+    }
+
+    .note.lane0 {
+        background: linear-gradient(45deg, #2244aa, #4466cc);
+        border-color: #2244aa;
+        box-shadow: 0 0 20px #2244aa, 0 0 40px rgba(34,68,170,0.5);
+    }
+    .note.lane1 {
+        background: linear-gradient(45deg, #4488ff, #6699ff);
+        border-color: #4488ff;
+        box-shadow: 0 0 20px #4488ff, 0 0 40px rgba(68,136,255,0.5);
+    }
+    .note.lane2 {
+        background: linear-gradient(45deg, #66aaff, #88ccff);
+        border-color: #66aaff;
+        box-shadow: 0 0 20px #66aaff, 0 0 40px rgba(102,170,255,0.5);
+    }
+    .note.lane3 {
+        background: linear-gradient(45deg, #88ccff, #aaddff);
+        border-color: #88ccff;
+        box-shadow: 0 0 20px #88ccff, 0 0 40px rgba(136,204,255,0.5);
+    }
+
+    .note.hit {
+        animation: noteHit 0.3s ease forwards;
+    }
+    @keyframes noteHit {
+        0% { transform: scale(1) rotate(0deg); opacity: 1; }
+        50% { transform: scale(1.5) rotate(180deg); opacity: 0.8; }
+        100% { transform: scale(2) rotate(360deg); opacity: 0; }
+    }
+
+    .particle {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        opacity: 0.9;
+        pointer-events: none;
+    }
+
+    .ui-container {
+        display: flex;
+        justify-content: center;
+        gap: 50px;
+        margin: 20px 0;
+    }
+
+    #score, #combo, #accuracy {
+        font-size: 24px;
+        font-weight: 700;
+        padding: 10px 20px;
+        border: 2px solid;
+        border-radius: 10px;
+        background: rgba(0,0,30,0.7);
+        min-width: 150px;
+    }
+
+    #score {
+        border-color: #4488ff;
+        color: #4488ff;
+        text-shadow: 0 0 10px #4488ff;
+        box-shadow: 0 0 20px rgba(68,136,255,0.3);
+    }
+
+    #combo {
+        border-color: #88ccff;
+        color: #88ccff;
+        text-shadow: 0 0 10px #88ccff;
+        box-shadow: 0 0 20px rgba(136,204,255,0.3);
+    }
+
+    #accuracy {
+        border-color: #66aaff;
+        color: #66aaff;
+        text-shadow: 0 0 10px #66aaff;
+        box-shadow: 0 0 20px rgba(102,170,255,0.3);
+    }
+
+    .star {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.8;
+        animation: starTwinkle 2s ease-in-out infinite alternate;
+    }
+
+    .star.small {
+        width: 3px;
+        height: 3px;
+        background: #aaddff;
+    }
+    .star.medium {
+        width: 5px;
+        height: 5px;
+        background: #88ccff;
+        box-shadow: 0 0 10px #88ccff;
+    }
+    .star.large {
+        width: 7px;
+        height: 7px;
+        background: #4488ff;
+        box-shadow: 0 0 15px #4488ff;
+    }
+
+    @keyframes starTwinkle {
+        0% { opacity: 0.3; }
+        100% { opacity: 1; }
+    }
+
+    #startScreen, #gameOverScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,30,0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: white;
+        font-size: 32px;
+        font-weight: 700;
+        z-index: 10;
+        cursor: pointer;
+        border-radius: 15px;
+    }
+
+    #gameOverScreen {
+        background: rgba(20,0,40,0.95);
+        backdrop-filter: blur(10px);
+    }
+
+    #startScreen h2, #gameOverScreen h2 {
+        background: linear-gradient(45deg, #4488ff, #88ccff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 30px;
+        font-size: 2em;
+    }
+
+    #gameOverScreen h2 {
+        background: linear-gradient(45deg, #ff4444, #ff8888);
+        color: #ff6666;
+        text-shadow: 0 0 20px rgba(255,68,68,0.8);
+    }
+
+    .game-over-stats {
+        font-size: 18px;
+        margin: 10px 0;
+        color: #88ccff;
+        opacity: 0.9;
+    }
+
+    .restart-instruction {
+        font-size: 16px;
+        margin-top: 30px;
+        color: #88ccff;
+        opacity: 0.7;
+        animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 0.7; }
+        50% { opacity: 1; }
+    }
+
+    .start-instruction {
+        font-size: 18px;
+        margin: 10px 0;
+        opacity: 0.8;
+        color: #88ccff;
+    }
+
+    .music-controls {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .music-btn {
+        background: rgba(68,136,255,0.2);
+        border: 2px solid #4488ff;
+        color: #88ccff;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-family: 'Orbitron', monospace;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 12px;
+    }
+
+    .music-btn:hover {
+        background: rgba(68,136,255,0.4);
+        box-shadow: 0 0 20px rgba(68,136,255,0.6);
+        transform: scale(1.05);
+    }
+
+    .music-btn:active {
+        transform: scale(0.95);
+    }
+
+    .beat-indicator {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 60px;
+        height: 60px;
+        border: 3px solid #4488ff;
+        border-radius: 50%;
+        background: rgba(68,136,255,0.1);
+        animation: beatPulse 0.5s ease-in-out infinite;
+    }
+
+    @keyframes beatPulse {
+        0% { transform: scale(1); box-shadow: 0 0 20px rgba(68,136,255,0.5); }
+        50% { transform: scale(1.1); box-shadow: 0 0 40px rgba(68,136,255,0.8); }
+        100% { transform: scale(1); box-shadow: 0 0 20px rgba(68,136,255,0.5); }
+    }
+
+    .music-status {
+        position: absolute;
+        top: 90px;
+        right: 20px;
+        font-size: 12px;
+        color: #88ccff;
+        opacity: 0.8;
+        max-width: 150px;
+        text-align: right;
+    }
+</style>
+</head>
+<body>
+
+<h1>SEA NOTES</h1>
+
+<div class="ui-container">
+    <div id="score">Score: 0</div>
+    <div id="combo">Combo: 0</div>
+    <div id="accuracy">Accuracy: 100%</div>
+</div>
+
+<div class="music-controls">
+    <button class="music-btn" onclick="loadMusicFile()"> Load Music</button>
+    <button class="music-btn" onclick="playMusic()">▶ Play</button>
+    <button class="music-btn" onclick="pauseMusic()">⏸ Pause</button>
+    <button class="music-btn" onclick="stopMusic()">⏹ Stop</button>
+</div>
+
+<div class="music-status" id="musicStatus">No music loaded</div>
+
+<div class="beat-indicator"></div>
+
+<div id="gameArea">
+    <div id="startScreen">
+        <h2>BLUE RHYTHM</h2>
+        <div class="start-instruction">Press SPACE to Start</div>
+        <div class="start-instruction">Use S, D, J, K keys to hit notes</div>
+        <div class="start-instruction">Hit notes when they reach the targets!</div>
+    </div>
+
+    <div id="gameOverScreen" style="display: none;">
+        <h2>GAME OVER</h2>
+        <div class="game-over-stats">Final Score: <span id="finalScore">0</span></div>
+        <div class="game-over-stats">Best Combo: <span id="bestCombo">0</span></div>
+        <div class="game-over-stats">Final Accuracy: <span id="finalAccuracy">100%</span></div>
+        <div class="game-over-stats">You missed <span id="missedCount">5</span> notes in a row!</div>
+        <div class="restart-instruction">Press SPACE to Restart</div>
+    </div>
+</div>
+
+<audio id="bgMusic" loop preload="metadata">
+
+</audio>
+
+<input type="file" id="musicFileInput" accept="audio/*" style="display: none;" />
+
+<script>
+const gameArea = document.getElementById("gameArea");
+const scoreDisplay = document.getElementById("score");
+const comboDisplay = document.getElementById("combo");
+const accuracyDisplay = document.getElementById("accuracy");
+const startScreen = document.getElementById("startScreen");
+const gameOverScreen = document.getElementById("gameOverScreen");
+const bgMusic = document.getElementById("bgMusic");
+const musicFileInput = document.getElementById("musicFileInput");
+const musicStatus = document.getElementById("musicStatus");
+
+const lanes = 4;
+const laneWidth = 125;
+const targetY = 625;
+let score = 0;
+let combo = 0;
+let totalNotes = 0;
+let hitNotes = 0;
+let notes = [];
+let speed = 4;
+const laneKeys = ["s", "d", "j", "k"];
+const hitWindow = 80;
+let gameRunning = false;
+let musicStartTime = 0;
+let gameStartTime = 0;
+let currentMusicFile = null;
+let missedInRow = 0;
+const maxMissedInRow = 3;
+let bestCombo = 0;
+
+const beatPattern = [
+
+    [0.5, [0]],
+    [1.0, [1]],
+    [1.5, [2]],
+    [2.0, [3]],
+    [2.5, [0, 2]],
+    [3.0, [1]],
+    [3.5, [3]],
+    [4.0, [0, 1]],
+    [4.5, [2]],
+    [5.0, [3]],
+    [5.5, [1, 3]],
+    [6.0, [0]],
+    [6.5, [2]],
+    [7.0, [1]],
+    [7.5, [0, 2, 3]],
+    [8.0, [1]],
+    [8.5, [0]],
+    [9.0, [3]],
+    [9.5, [1, 2]],
+    [10.0, [0]],
+    [10.5, [3]],
+    [11.0, [1]],
+    [11.5, [2]],
+    [12.0, [0, 3]],
+    [12.5, [1]],
+    [13.0, [2]],
+    [13.5, [0, 1, 3]],
+    [14.0, [2]],
+    [14.5, [0]],
+    [15.0, [1, 3]],
+    [15.5, [2]],
+    [16.0, [0, 1, 2, 3]],
+
+];
+
+let lastSpawnTime = {};
+const patternLength = 16; 
+const spawnCooldown = 0.1; 
+
+function createLanes() {
+    for (let i = 0; i < lanes; i++) {
+        let target = document.createElement("div");
+        target.classList.add("target");
+        target.style.left = (i * laneWidth) + "px";
+        gameArea.appendChild(target);
+
+        let label = document.createElement("div");
+        label.classList.add("label");
+        label.style.left = (i * laneWidth) + "px";
+        label.textContent = laneKeys[i].toUpperCase();
+        gameArea.appendChild(label);
+
+        if (i > 0) {
+            let line = document.createElement("div");
+            line.classList.add("laneLine");
+            line.style.left = (i * laneWidth) + "px";
+            gameArea.appendChild(line);
+        }
+    }
+}
+
+function createStars() {
+    const starTypes = ['small', 'medium', 'large'];
+    for (let i = 0; i < 80; i++) {
+        let star = document.createElement("div");
+        star.classList.add("star");
+        star.classList.add(starTypes[Math.floor(Math.random() * starTypes.length)]);
+        star.style.left = Math.random() * 500 + "px";
+        star.style.top = Math.random() * 700 + "px";
+        star.style.animationDelay = Math.random() * 2 + "s";
+        gameArea.appendChild(star);
+    }
+}
+
+function updateStars() {
+    let stars = document.querySelectorAll(".star");
+    stars.forEach(star => {
+        let y = parseFloat(star.style.top);
+        y += 0.5 + Math.random() * 0.5;
+        if (y > 700) y = -10;
+        star.style.top = y + "px";
+    });
+}
+
+function spawnSyncedNotes() {
+    if (!gameRunning) return;
+
+    const currentTime = (Date.now() - gameStartTime) / 1000;
+    const patternTime = currentTime % patternLength;
+
+    beatPattern.forEach(([beatTime, lanesToSpawn]) => {
+        const beatKey = `${Math.floor(currentTime / patternLength)}-${beatTime}`;
+
+        if (patternTime >= beatTime && 
+            patternTime < beatTime + spawnCooldown && 
+            !lastSpawnTime[beatKey]) {
+
+            lanesToSpawn.forEach(lane => {
+                spawnNote(lane);
+            });
+
+            lastSpawnTime[beatKey] = true;
+
+            Object.keys(lastSpawnTime).forEach(key => {
+                const [cycle] = key.split('-').map(Number);
+                const currentCycle = Math.floor(currentTime / patternLength);
+                if (currentCycle - cycle > 2) {
+                    delete lastSpawnTime[key];
+                }
+            });
+        }
+    });
+}
+
+function spawnNote(lane) {
+    let note = document.createElement("div");
+    note.classList.add("note");
+    note.classList.add(`lane${lane}`);
+    note.style.top = "0px";
+    note.style.left = (lane * laneWidth) + "px";
+    gameArea.appendChild(note);
+    notes.push({element: note, lane: lane, y: 0});
+    totalNotes++;
+}
+
+function updateNotes() {
+    for (let i = notes.length - 1; i >= 0; i--) {
+        notes[i].y += speed;
+        notes[i].element.style.top = notes[i].y + "px";
+        if (notes[i].y > 700) {
+            missEffect(notes[i].lane);
+            notes[i].element.remove();
+            notes.splice(i, 1);
+            combo = 0;
+            missedInRow++;
+
+            if (missedInRow >= maxMissedInRow) {
+                gameOver();
+                return;
+            }
+
+            updateUI();
+        }
+    }
+}
+
+function hitNote(lane) {
+    for (let i = 0; i < notes.length; i++) {
+        let n = notes[i];
+        if (n.lane === lane && Math.abs(n.y - targetY) < hitWindow) {
+            const accuracy = Math.max(0, 100 - Math.abs(n.y - targetY));
+            score += Math.floor(100 + (accuracy * 2));
+            combo++;
+            hitNotes++;
+            missedInRow = 0; 
+
+            if (combo > bestCombo) {
+                bestCombo = combo;
+            }
+
+            updateUI();
+            hitEffect(n.element, lane);
+            shakeScreen();
+            notes.splice(i, 1);
+            return;
+        }
+    }
+}
+
+function shakeScreen() {
+    document.body.classList.add('shake');
+    setTimeout(() => {
+        document.body.classList.remove('shake');
+    }, 400);
+}
+
+function hitEffect(note, lane) {
+    const target = document.getElementsByClassName("target")[lane];
+    target.classList.add("hitFlash");
+    setTimeout(() => target.classList.remove("hitFlash"), 300);
+
+    note.classList.add("hit");
+    setTimeout(() => note.remove(), 300);
+}
+
+function missEffect(lane) {
+    const target = document.getElementsByClassName("target")[lane];
+    target.classList.add("miss");
+    setTimeout(() => target.classList.remove("miss"), 400);
+}
+
+function createParticles(x, y, lane) {
+    const colors = ["#2244aa", "#4488ff", "#66aaff", "#88ccff"];
+    const particleColor = colors[lane];
+
+    for (let i = 0; i < 20; i++) {
+        let p = document.createElement("div");
+        p.classList.add("particle");
+        p.style.left = x + "px";
+        p.style.top = y + "px";
+        p.style.background = particleColor;
+        p.style.boxShadow = `0 0 10px ${particleColor}`;
+        gameArea.appendChild(p);
+
+        let angle = Math.random() * 2 * Math.PI;
+        let speed = Math.random() * 6 + 3;
+        let dx = Math.cos(angle) * speed;
+        let dy = Math.sin(angle) * speed;
+
+        let life = 30;
+        let move = setInterval(() => {
+            p.style.left = parseFloat(p.style.left) + dx + "px";
+            p.style.top = parseFloat(p.style.top) + dy + "px";
+            p.style.opacity = parseFloat(p.style.opacity || 1) - 0.033;
+            dy += 0.2; 
+            if (--life <= 0) {
+                clearInterval(move);
+                p.remove();
+            }
+        }, 16);
+    }
+}
+
+function gameOver() {
+    gameRunning = false;
+    pauseMusic();
+
+    document.getElementById("finalScore").textContent = score;
+    document.getElementById("bestCombo").textContent = bestCombo;
+    const finalAccuracy = totalNotes > 0 ? Math.round((hitNotes / totalNotes) * 100) : 100;
+    document.getElementById("finalAccuracy").textContent = finalAccuracy + "%";
+    document.getElementById("missedCount").textContent = maxMissedInRow;
+
+    gameOverScreen.style.display = "flex";
+}
+
+function restartGame() {
+
+    score = 0;
+    combo = 0;
+    totalNotes = 0;
+    hitNotes = 0;
+    missedInRow = 0;
+    bestCombo = 0;
+
+    notes.forEach(note => note.element.remove());
+    notes = [];
+
+    document.querySelectorAll('.particle').forEach(p => p.remove());
+
+    updateUI();
+
+    gameOverScreen.style.display = "none";
+
+    startGame();
+}
+
+function updateUI() {
+    scoreDisplay.textContent = "Score: " + score;
+    comboDisplay.textContent = "Combo: " + combo;
+    const accuracy = totalNotes > 0 ? Math.round((hitNotes / totalNotes) * 100) : 100;
+    accuracyDisplay.textContent = "Accuracy: " + accuracy + "%";
+}
+
+function loadMusicFile() {
+    musicFileInput.click();
+}
+
+function playMusic() {
+    if (currentMusicFile && bgMusic.src) {
+        bgMusic.currentTime = 0;
+        bgMusic.play().then(() => {
+            musicStartTime = Date.now();
+            updateMusicStatus("Playing: " + currentMusicFile.name);
+        }).catch(e => {
+            console.error("Playback failed:", e);
+            updateMusicStatus("Playback failed - " + e.message);
+        });
+    } else {
+        updateMusicStatus("No music loaded");
+        alert("No music loaded! Click 'Load Music' to select an MP3 file.");
+    }
+}
+
+function pauseMusic() {
+    if (bgMusic.paused) {
+        bgMusic.play().then(() => {
+            updateMusicStatus("Playing: " + (currentMusicFile ? currentMusicFile.name : "Unknown"));
+        }).catch(e => {
+            updateMusicStatus("Playback failed");
+        });
+    } else {
+        bgMusic.pause();
+        updateMusicStatus("Paused: " + (currentMusicFile ? currentMusicFile.name : "Unknown"));
+    }
+}
+
+function stopMusic() {
+    bgMusic.pause();
+    bgMusic.currentTime = 0;
+    updateMusicStatus(currentMusicFile ? "Stopped: " + currentMusicFile.name : "No music loaded");
+}
+
+function updateMusicStatus(status) {
+    musicStatus.textContent = status;
+}
+
+musicFileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+
+        if (bgMusic.src && bgMusic.src.startsWith('blob:')) {
+            URL.revokeObjectURL(bgMusic.src);
+        }
+
+        const url = URL.createObjectURL(file);
+        bgMusic.src = url;
+        currentMusicFile = file;
+
+        bgMusic.addEventListener('loadedmetadata', function() {
+            const duration = Math.floor(bgMusic.duration);
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            updateMusicStatus(`Loaded: ${file.name} (${minutes}:${seconds.toString().padStart(2, '0')})`);
+        }, { once: true });
+
+        bgMusic.addEventListener('error', function(e) {
+            console.error('Music loading error:', e);
+            updateMusicStatus("Error loading: " + file.name);
+            currentMusicFile = null;
+        }, { once: true });
+
+        bgMusic.load();
+    }
+});
+
+document.addEventListener("keydown", e => {
+
+    if (startScreen.style.display !== "none" && (e.key === " " || e.key === "Spacebar")) {
+        startGame();
+        return;
+    }
+
+    if (gameOverScreen.style.display !== "none" && (e.key === " " || e.key === "Spacebar")) {
+        restartGame();
+        return;
+    }
+
+    if (!gameRunning) return;
+
+    let lane = laneKeys.indexOf(e.key.toLowerCase());
+    if (lane !== -1) {
+        hitNote(lane);
+
+        const target = document.getElementsByClassName("target")[lane];
+        target.style.transform = "scale(0.95)";
+        setTimeout(() => target.style.transform = "scale(1)", 100);
+    }
+});
+
+function gameLoop() {
+    if (gameRunning) {
+        updateNotes();
+        spawnSyncedNotes();
+    }
+    updateStars();
+    requestAnimationFrame(gameLoop);
+}
+
+function startGame() {
+    startScreen.style.display = "none";
+    gameRunning = true;
+    gameStartTime = Date.now();
+    lastSpawnTime = {}; 
+
+    if (currentMusicFile) {
+        playMusic();
+    }
+}
+
+createLanes();
+createStars();
+gameLoop();
+
+startScreen.addEventListener("click", startGame);
+gameOverScreen.addEventListener("click", restartGame);
+
+window.addEventListener('beforeunload', () => {
+    if (bgMusic.src && bgMusic.src.startsWith('blob:')) {
+        URL.revokeObjectURL(bgMusic.src);
+    }
+});
+</script>
+
+</body>
+</html>
